@@ -1,79 +1,46 @@
-# Hide Facebook Reels
 
-A small Chrome extension that hides Facebook Reels elements on facebook.com by using a content script and CSS rules.
+Hide FB Reels
+=================
 
-## Features
+Simple Chrome extension (Manifest V3) that hides Facebook Reels elements from the page using a content script.
 
-- Hides Facebook Reels elements using heuristics (href, data-pagelet, aria-label, class names).
-- Observes dynamic DOM changes and SPA navigation to keep Reels hidden.
-- Minimal permissions and no network requests.
+What this repository contains
 
-## Install (local / developer)
+- A content script that runs on facebook.com and hides UI blocks likely to be Reels.
+- A small stylesheet that applies a hiding class to matched elements.
+- A manifest.json configured for Manifest V3.
 
-1. Clone the repository or download the `Extension` folder.
-2. Open Chrome (or Edge) and go to `chrome://extensions`.
-3. Enable "Developer mode".
-4. Click "Load unpacked" and select this `Extension` folder.
+Quick install (for local testing)
 
-## Usage
+1. Open Chrome (or Edge). Go to chrome://extensions.
+2. Enable "Developer mode" in the top-right.
+3. Click "Load unpacked" and select this project folder (the folder containing `manifest.json`).
+4. Visit facebook.com and browse; reels should be hidden automatically. Open DevTools -> Console and set `LOG = true` in `content.js` to see diagnostic messages.
 
-Once loaded, the extension will run on `*.facebook.com` and hide Reels-style elements. If you want to enable debug logs, edit `content.js` and set `LOG = true`, then reload the extension.
+Notes for developers
 
-# Hide Facebook Reels
+- The content script uses simple heuristics (link paths, attributes, and class name patterns) and a MutationObserver to handle dynamic content.
+- This is intentionally minimal and client-side only — no network requests or external APIs.
 
-A small Chrome extension that hides Facebook Reels elements on facebook.com by using a content script and CSS rules.
+Privacy and permissions
 
-## Features
+- The extension requests no sensitive permissions beyond what is needed to run on `*.facebook.com` (declared in `manifest.json`).
+- No data is collected or transmitted by this extension.
 
-- Hides Facebook Reels elements using heuristics (href, data-pagelet, aria-label, class names).
-- Observes dynamic DOM changes and SPA navigation to keep Reels hidden.
-- Minimal permissions and no network requests.
+Extending this project
 
-## Install (local / developer)
+- Options page: add settings for a whitelist, toggle, and debug logging.
+- Popup: provide a one-click enable/disable and a count of hidden items.
+- Tests: add a small Puppeteer script and HTML fixture to assert the hiding behavior.
 
-1. Clone the repository or download the `Extension` folder.
-2. Open Chrome (or Edge) and go to `chrome://extensions`.
-3. Enable "Developer mode".
-4. Click "Load unpacked" and select this `Extension` folder.
+Contributing
 
-## Usage
+- Open issues or PRs if you have improvements. Keep changes small and well-documented.
 
-Once loaded, the extension will run on `*.facebook.com` and hide Reels-style elements. If you want to enable debug logs, edit `content.js` and set `LOG = true`, then reload the extension.
+License
 
-## Development
+- This project is provided "as-is". Add a license file if you want to publish it publicly.
 
-Files of interest:
+Contact
 
-- `manifest.json` - Chrome extension manifest (Manifest V3)
-- `content.js` - content script detecting and hiding Reels
-- `styles.css` - CSS class that hides matched nodes
-- `icons/` - small placeholder icons
-
-To run locally and iterate:
-
-1. Make code changes.
-2. In `chrome://extensions` reload the extension (click the circular arrow).
-3. Refresh facebook.com and verify behavior.
-
-## QA / Troubleshooting
-
-- Load the extension as "unpacked" in Chrome/Edge (see above).
-- Visit https://www.facebook.com/ and scroll through the feed. Reels items (links with `/reel/` and related containers) should be hidden.
-- If you still see Reels:
-  - Open DevTools (F12) -> Elements and try searching for `/reel/` or `Reel` in attributes to find current selectors.
-  - Edit `content.js` and tweak the selector list; then reload the extension.
-
-## Privacy & Safety
-
-- This extension runs only on `*.facebook.com` and doesn't transmit any data off the page.
-- No external network requests are made by the extension.
-
-## Contribute / Next steps
-
-- Add an options page to toggle hiding or whitelist certain pages.
-- Add unit tests for the selector heuristics (requires bundling/testing harness).
-- Replace placeholder icons with proper PNG/SVG artwork.
-
-## License
-
-MIT
+- Repo owner: GitHub user `taiab0x1`.
