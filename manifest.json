@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Hide Facebook Reels",
+  "version": "0.1.0",
+  "description": "Hides Facebook Reels content on Facebook pages.",
+  "icons": {
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.facebook.com/*"],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "permissions": [
+    "storage"
+  ]
+}

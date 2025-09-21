@@ -1,0 +1,11 @@
+/* styles.css - hides elements with the hide class */
+.gh-hide-facebook-reels {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
