@@ -4,17 +4,58 @@
   'use strict';
 
   const HIDE_CLASS = 'gh-hide-facebook-reels';
-  // LOG can be toggled at runtime by setting `window.GH_HIDE_REELS_LOG = true` in DevTools.
-  // Default is false to avoid console noise.
-  const LOG = Boolean(window && window.GH_HIDE_REELS_LOG);
+  let enabled = true;
+  const observerConfig = { childList: true, subtree: true };
+
+  function addGlobalStyles() {
+    try {
+      if (document.getElementById('gh-hide-reels-styles')) return;
+      const s = document.createElement('style');
+      s.id = 'gh-hide-reels-styles';
+      s.textContent = `.${HIDE_CLASS} { display:none !important; visibility:hidden !important; opacity:0 !important; height:0 !important; overflow:hidden !important; margin:0 !important; padding:0 !important; border:0 !important; }`;
+      (document.head || document.documentElement).appendChild(s);
+    } catch (e) { /* ignore */ }
+  }
+  // Runtime diagnostic toggle: set `window.GH_HIDE_REELS_LOG = true` in DevTools to enable logging/highlight.
+  function isLog() {
+    return Boolean(window && window.GH_HIDE_REELS_LOG);
+  }
 
   function log(...args) {
-    if (LOG) console.debug('[hide-reels]', ...args);
+    if (isLog()) console.debug('[hide-reels]', ...args);
+  }
+
+  // Return a short readable selector for debug output
+  function getReadableSelector(el) {
+    if (!el || el === document || el === document.documentElement) return 'document';
+    if (el.id) return '#' + el.id;
+    const parts = [];
+    let cur = el;
+    while (cur && cur !== document.body && parts.length < 8) {
+      let part = cur.tagName.toLowerCase();
+      if (cur.classList && cur.classList.length) {
+        part += '.' + Array.from(cur.classList).slice(0,2).join('.');
+      }
+      parts.unshift(part);
+      cur = cur.parentElement;
+    }
+    return parts.join(' > ');
   }
 
   function addHideClass(el) {
     if (!el || !el.classList) return;
     if (!el.classList.contains(HIDE_CLASS)) {
+      if (isLog()) {
+        try {
+          const sel = getReadableSelector(el);
+          const snippet = (el.outerHTML || '').slice(0, 400).replace(/\s+/g, ' ');
+          console.debug('[hide-reels] hiding', sel, snippet);
+          // briefly outline the element so user can see what was matched
+          const oldOutline = el.style.outline;
+          el.style.outline = '2px solid rgba(255,50,50,0.9)';
+          setTimeout(() => { el.style.outline = oldOutline; }, 1200);
+        } catch (e) {}
+      }
       el.classList.add(HIDE_CLASS);
       log('hid element', el);
     }
@@ -162,16 +203,26 @@
       });
     } catch (e) {}
 
-  // throttled rescans to avoid CPU spikes
-  let scanScheduled = false;
-  function scheduleScan(delay = 250) {
-    if (scanScheduled) return;
-    scanScheduled = true;
-    setTimeout(() => {
-      scanScheduled = false;
-      scanExisting();
-    }, delay);
-  }
+    // If a small label/span/h3 contains 'Reels', hide its nearest interactive ancestor
+    try {
+      const labels = document.querySelectorAll('span, h3');
+      labels.forEach(el => {
+        try {
+          const txt = (el.innerText || el.textContent || '').trim();
+          if (!/\breels?\b/i.test(txt)) return;
+          // prefer hiding the interactive ancestor that contains both icon and label
+          const interactive = el.closest('[role="button"], [role="link"], a, button, div[role="link"], div[role="button"]');
+          if (interactive) addHideClass(interactive);
+          else {
+            const anc = el.closest('nav, header, [role="navigation"], [role="menubar"], div[role="navigation"]');
+            if (anc) addHideClass(anc);
+            else addHideClass(el);
+          }
+        } catch (e) {}
+      });
+    } catch (e) {}
+
+  
 
   // observe dynamic changes
   const observer = new MutationObserver((mutations) => {
@@ -201,10 +252,53 @@
     window.addEventListener('replaceState', () => scheduleScan(100));
   }
 
-  function init() {
-    scanExisting();
-    observer.observe(document.documentElement || document.body, { childList: true, subtree: true });
+  // Read enabled flag from storage and initialize. Listen for storage changes to toggle behavior.
+  async function init() {
+    addGlobalStyles();
+    const data = await new Promise((res) => chrome.storage && chrome.storage.sync
+      ? chrome.storage.sync.get({ enabled: true }, res)
+      : res({ enabled: true }));
+    enabled = Boolean(data.enabled);
+    if (isLog()) console.log('[gh-hide-reels] initialized, enabled=', enabled);
+    if (enabled) {
+      scanExisting();
+      observer.observe(document.body || document.documentElement, observerConfig);
+    }
     hookHistoryEvents();
+
+    // react to storage changes
+    if (chrome.storage && chrome.storage.onChanged) {
+      chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === 'sync' && changes.enabled) {
+          enabled = Boolean(changes.enabled.newValue);
+          if (isLog()) console.log('[gh-hide-reels] storage.onChanged enabled=', enabled);
+          if (enabled) {
+            scanExisting();
+            observer.observe(document.body || document.documentElement, observerConfig);
+          } else {
+            // remove hide class
+            document.querySelectorAll('.' + HIDE_CLASS).forEach(el => el.classList.remove(HIDE_CLASS));
+            observer.disconnect();
+          }
+        }
+      });
+    }
+
+    // listen for explicit toggle events from popup
+    window.addEventListener('gh-reels-toggle', () => {
+      if (isLog()) console.log('[gh-hide-reels] received gh-reels-toggle event, re-scan');
+      if (enabled) scanExisting();
+    });
+  }
+  // throttled rescans to avoid CPU spikes
+  let scanScheduled = false;
+  function scheduleScan(delay = 250) {
+    if (scanScheduled) return;
+    scanScheduled = true;
+    setTimeout(() => {
+      scanScheduled = false;
+      scanExisting();
+    }, delay);
   }
 
   if (document.readyState === 'loading') {
