@@ -1,62 +1,91 @@
 
-Hide FB Reels
-=============
+# Hide FB Reels
 
-Simple Chrome extension (Manifest V3) that hides Facebook Reels elements from the page using a content script.
+![release](https://img.shields.io/badge/release-v0.1.0-blue.svg) ![license](https://img.shields.io/badge/license-as--is-lightgrey.svg) ![platform](https://img.shields.io/badge/platform-Chrome%20%7C%20Edge-brightgreen)
 
-What this repository contains
+Lightweight Chrome/Edge extension (Manifest V3) to hide Facebook Reels UI elements from facebook.com. It uses conservative heuristics and lets you toggle the behavior via a popup. No external network requests or data collection.
 
-- A content script that runs on facebook.com and hides UI blocks likely to be Reels.
-- A small stylesheet that applies a hiding class to matched elements.
-- A manifest.json configured for Manifest V3.
+<!-- toc -->
+- [Quick demo](#quick-demo)
+- [Install (developer)](#install-developer)
+- [Popup toggle](#popup-toggle)
+- [Runtime diagnostics](#runtime-diagnostics)
+- [How it works (short)](#how-it-works-short)
+- [Troubleshooting](#troubleshooting)
+- [Development & tests](#development--tests)
+- [Contributing](#contributing)
+- [License](#license)
+- [Contact](#contact)
+<!-- tocstop -->
 
-Quick install (for local testing)
+## Quick demo
 
-1. Open Chrome (or Edge). Go to chrome://extensions.
-2. Enable "Developer mode" in the top-right.
-3. Click "Load unpacked" and select this project folder (the folder containing `manifest.json`).
-4. Visit facebook.com and browse; Reels should be hidden automatically.
+Open the extension and toggle the popup to enable/disable hiding. When enabled, the content script hides elements it thinks are Reels.
 
-Popup Toggle (one-click)
+> Note: Facebook UI changes frequently; this extension aims for conservative rules to reduce false positives.
 
-This release includes a small popup that lets you enable or disable the hiding behavior without reloading the extension.
+## Install (developer)
 
-- Click the extension icon in the toolbar to open the popup.
-- The button shows the current state (ON / OFF). Toggle it to enable/disable hiding.
-- The state is saved to `chrome.storage.sync` so it persists across browsers where you are signed in.
+1. Open Chrome/Edge and navigate to `chrome://extensions` (or `edge://extensions`).
+2. Enable "Developer mode".
+3. Click "Load unpacked" and select this repository's folder (the folder containing `manifest.json`).
 
-Runtime diagnostics (dev)
+The extension will inject `content.js` on `*.facebook.com` pages.
 
-If you need to debug why something is or isn't being hidden, open DevTools on Facebook and run:
+## Popup toggle
 
-    window.GH_HIDE_REELS_LOG = true
+- Click the extension icon in the browser toolbar to open the popup.
+- The popup has a single button showing `Hide Facebook Reels: ON` or `OFF`.
+- The state is persisted to `chrome.storage.sync` so it follows your Chrome profile.
 
-With this flag set the content script will log matched elements to the Console and briefly outline them visually so you can inspect the outerHTML and craft precise rules.
+## Runtime diagnostics
 
-Notes for developers
+To debug matching/visibility issues without editing code, open Developer Tools on Facebook and run:
 
-- The content script uses heuristics (link paths, attributes, and class name patterns) and a MutationObserver to handle dynamic content.
-- It also hooks history.pushState/replaceState to detect SPA navigations and schedules throttled rescans to avoid CPU spikes.
+```js
+window.GH_HIDE_REELS_LOG = true
+```
 
-Privacy and permissions
+With this flag set the content script will:
 
-- The extension requests minimal permissions required to run on `*.facebook.com` (see `manifest.json`).
-- No data is collected or transmitted by this extension.
+- Log messages to the Console for each element it hides (includes a short selector and an outerHTML snippet).
+- Briefly outline matched elements so you can visually confirm which element was targeted.
 
-Extending this project
+If something still appears, copy the console line starting with `[hide-reels] hiding` and paste it into a new issue or in a reply here.
 
-- Add an options page for whitelists, more granular toggles, or logging levels.
-- Add tests (Puppeteer + HTML fixtures) to assert hiding behavior.
+## How it works (short)
 
-Contributing
+- The content script uses several lightweight heuristics:
+    - href patterns (e.g. links containing `/reel/`)
+    - attributes (aria-label, data-pagelet, title, alt)
+    - visible labels/text (searches for "Reels" in small nav items)
+    - icon detection (svg or icon element beside a short label)
+- It uses a `MutationObserver` to catch dynamically inserted content and wraps `history.pushState`/`replaceState` to detect SPA navigations.
 
-- Open issues or PRs if you have improvements. Keep changes small and documented.
+## Troubleshooting
 
-License
+- If the popup state doesn't persist: make sure Chrome sync is enabled for `chrome.storage.sync` or test with the extension reloaded.
+- If unrelated UI is hidden: enable `window.GH_HIDE_REELS_LOG = true` and paste the console output so we can make the rule more specific.
 
-- This project is provided "as-is". Add a license file if you want to publish it publicly.
+## Development & tests
 
-Contact
+Local quick smoke test:
 
-- Repo owner: GitHub user `taiab0x1`.
+1. Open `devtools` and set `window.GH_HIDE_REELS_LOG = true`.
+2. Reload the facebook.com tab to see logs for matched elements.
+
+Automated testing (suggestion): create a small HTML fixture with a Reels-like block and use Puppeteer/Jest to assert the CSS hiding class is applied.
+
+## Contributing
+
+- Open issues or pull requests. Small focused PRs are preferred.
+- If you submit a rule change, include a short rationale and before/after screenshots (or the element outerHTML) to help review.
+
+## License
+
+This project is provided "as-is". Add a license file if you want to publish it.
+
+## Contact
+
+- Repo owner: GitHub user `taiab.cse@gmail.com`.
 
