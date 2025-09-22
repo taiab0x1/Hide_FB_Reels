@@ -4,7 +4,9 @@
   'use strict';
 
   const HIDE_CLASS = 'gh-hide-facebook-reels';
-  const LOG = false; // set to true while debugging
+  // LOG can be toggled at runtime by setting `window.GH_HIDE_REELS_LOG = true` in DevTools.
+  // Default is false to avoid console noise.
+  const LOG = Boolean(window && window.GH_HIDE_REELS_LOG);
 
   function log(...args) {
     if (LOG) console.debug('[hide-reels]', ...args);
